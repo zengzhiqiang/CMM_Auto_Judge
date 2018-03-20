@@ -1,0 +1,150 @@
+Function Jud()
+Dim sta As Double   '储存标准值的变量
+    sta = 0
+Dim Jud_sum As Integer
+    Jud_sum = 0     '记录是否有样品超差的变量
+Dim Up_tol As Double
+    Up_tol = 0  '储存上公差值
+Dim Low_tol As Double
+    Low_tol = 0     '储存下公差值
+Dim mea_data() As Double
+Dim sum_Row As Integer   '当前单元格行
+Dim sum_Col As Integer   '当前单元格列
+Dim stu As Integer
+    stu = 0     '标记标准值状态
+    sum_Row = ActiveWorkbook.Application.ThisCell.Row
+    sum_Col = ActiveWorkbook.Application.ThisCell.Column
+    sta_str = Cells(sum_Row, 2)
+    If data_from_cell(Cells(sum_Row, 2)) = "null" Then
+        Jud = "/"
+    Else
+        sta = data_from_cell(Cells(sum_Row, 2))
+        If (data_from_cell(Cells(sum_Row, 3)) = "null" And data_from_cell(Cells(sum_Row, 4)) = "null") Then
+            Jud = "/"
+        ElseIf (data_from_cell(Cells(sum_Row, 3)) <> "null" And data_from_cell(Cells(sum_Row, 4)) = "null") Then
+            Up_tol = data_from_cell(Cells(sum_Row, 3))
+            For i = 5 To sum_Col - 3    '历遍单元格数值，存在超差的将标记变量值赋值1
+                mea_data() = arr_from_cell(Cells(sum_Row, i))
+                For j = 1 To mea_data(0)
+                    If mea_data(j) > sta + Up_tol Then
+                        Jud_sum = 1
+                    End If
+                Next j
+            Next i
+            If Jud_sum = 1 Then     '判定超差标记变量值，为1，输出"NO"，为0，输出"/"
+                Jud = "NO"
+            Else
+                Jud = "/"
+            End If
+        ElseIf (data_from_cell(Cells(sum_Row, 3)) = "null" And data_from_cell(Cells(sum_Row, 4)) <> "null") Then
+            Low_tol = data_from_cell(Cells(sum_Row, 4))
+            For i = 5 To sum_Col - 3    '历遍单元格数值，存在超差的将标记变量值赋值1
+                mea_data() = arr_from_cell(Cells(sum_Row, i))
+                For j = 1 To mea_data(0)
+                    If mea_data(j) < sta - Low_tol Then
+                        Jud_sum = 1
+                    End If
+                Next j
+            Next i
+            If Jud_sum = 1 Then     '判定超差标记变量值，为1，输出"NO"，为0，输出"/"
+                Jud = "NO"
+            Else
+                Jud = "/"
+            End If
+        ElseIf (data_from_cell(Cells(sum_Row, 3)) <> "null" And data_from_cell(Cells(sum_Row, 4)) <> "null") Then
+            Up_tol = data_from_cell(Cells(sum_Row, 3))
+            Low_tol = data_from_cell(Cells(sum_Row, 4))
+            For i = 5 To sum_Col - 3    '历遍单元格数值，存在超差的将标记变量值赋值1
+                mea_data() = arr_from_cell(Cells(sum_Row, i))
+                For j = 1 To mea_data(0)
+                    If (mea_data(j) < sta - Low_tol Or mea_data(j) > sta + Up_tol) Then
+                        Jud_sum = 1
+                    End If
+                Next j
+            Next i
+            If Jud_sum = 1 Then     '判定超差标记变量值，为1，输出"NO"，为0，输出"OK"
+                Jud = "NO"
+            Else
+                Jud = "OK"
+            End If
+        End If
+    End If
+End Function
+Function data_from_cell(str_from_cell As String)   '提取单元格数字函数
+Dim data_cell As Double
+    data_cell = 0       '记录单元格数字的变量
+Dim stu As Integer
+    stu = 0     '标记单元格是否有数字
+Dim temp As Integer
+    temp = 1    '标记当前数字为小数位第几位
+Dim dosh As Integer
+    dosh = 0    '标记当前位数字在小数点之前还是之后
+    For i = 1 To Len(str_from_cell) + 1
+        If dosh = 0 Then
+            If (Mid(str_from_cell, i, 1) >= 0 And Mid(str_from_cell, i, 1) <= 9) Then
+            stu = 1     '标记当前单元格是否有数字
+            data_cell = 10 * data_cell + Mid(str_from_cell, i, 1)  '遇见小数点之前的数字*10累加
+            ElseIf Mid(str_from_cell, i, 1) = "." Then
+                dosh = 1    '标记之后读入的数字为小数点后的数字
+            End If
+        ElseIf dosh = 1 Then
+            stu = 1     '标记当前单元格是否有数字
+            If (Mid(str_from_cell, i, 1) >= 0 And Mid(str_from_cell, i, 1) <= 9) Then
+                data_cell = data_cell + (Mid(str_from_cell, i, 1)) * (10 ^ (-temp))   '累加小数点后的数字
+                temp = temp + 1 '小数点位数加1
+            End If
+        End If
+    Next i
+    If stu = 1 Then
+    data_from_cell = data_cell
+    Else
+    data_from_cell = "null"
+    End If
+End Function
+Function arr_from_cell(str_from_cell As String)
+Dim arr_data_from_cell() As Double
+Dim temp As Integer
+    temp = 1    '标记当前数字为小数位第几位
+Dim dosh As Integer
+    dosh = 0    '标记当前位数字在小数点之前还是之后
+Dim sum_of_data As Integer
+    sum_of_data = 1     '标记单元格内有几个独立的数字
+For i = 1 To Len(str_from_cell)
+    If (Mid(str_from_cell, i, 1) = "、") Then
+        sum_of_data = sum_of_data + 1    '统计顿号个数
+    End If
+Next i
+    ReDim Preserve arr_data_from_cell(0 To sum_of_data)
+    arr_data_from_cell(0) = sum_of_data
+    sum_of_data = 1         '顿号置零
+For i = 1 To Len(str_from_cell)
+    If (Mid(str_from_cell, i, 1) = "、") Then
+        sum_of_data = sum_of_data + 1
+        temp = 1
+        dosh = 0
+    Else
+        If dosh = 0 Then
+            If (Mid(str_from_cell, i, 1) >= 0 And Mid(str_from_cell, i, 1) <= 9) Then
+                arr_data_from_cell(sum_of_data) = arr_data_from_cell(sum_of_data) * 10 + Mid(str_from_cell, i, 1)
+            ElseIf Mid(str_from_cell, i, 1) = "." Then
+                dosh = 1
+            End If
+        ElseIf dosh = 1 Then
+            arr_data_from_cell(sum_of_data) = arr_data_from_cell(sum_of_data) + (Mid(str_from_cell, i, 1)) * (10 ^ (-temp))
+            temp = temp + 1
+        End If
+    End If
+Next i
+arr_from_cell = arr_data_from_cell()
+End Function
+Function Judq()
+Dim sum_Row As Integer   '当前单元格行
+Dim sum_Col As Integer   '当前单元格列
+    sum_Row = ActiveWorkbook.Application.ThisCell.Row
+    sum_Col = ActiveWorkbook.Application.ThisCell.Column
+If (Jud() = Cells(sum_Row, sum_Col - 2)) Then
+    Judq = "OjbK"
+Else
+    Judq = "FBI Worning"
+End If
+End Function
